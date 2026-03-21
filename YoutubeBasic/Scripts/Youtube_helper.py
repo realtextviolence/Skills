@@ -4,12 +4,16 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+import time
 import xml.etree.ElementTree as ET
 
 PLAYER_URL = "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
 CLIENT_VERSION = "20.10.38"
 USER_AGENT = f"com.google.android.youtube/{CLIENT_VERSION} (Linux; U; Android 14)"
 REQUEST_TIMEOUT = 15
+MAX_RETRIES = 3
+RETRY_DELAY = 2
+PREFERRED_LANGUAGES = ("ru", "en")
 VIDEO_ID_PATTERN = r"[0-9A-Za-z_-]{11}"
 
 
@@ -17,10 +21,16 @@ def is_valid_video_id(value):
     return bool(re.fullmatch(VIDEO_ID_PATTERN, value))
 
 
-def make_request(url, *, data=None, headers=None):
-    req = urllib.request.Request(url, data=data, headers=headers or {})
-    with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
-        return response.read()
+def make_request(url, *, data=None, headers=None, retries=MAX_RETRIES):
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers or {})
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
+                return response.read()
+        except Exception:
+            if attempt == retries - 1:
+                raise
+            time.sleep(RETRY_DELAY)
 
 
 def extract_video_id(url):
@@ -54,7 +64,7 @@ def format_time(seconds):
     try:
         return f"[{format_duration(seconds)}]"
     except (ValueError, TypeError):
-        return "[00:00]"
+        return "[??:??]"
 
 
 def _node_text(node):
@@ -86,7 +96,9 @@ def parse_transcript_xml(xml_content):
 
 
 def pick_caption_track(captions):
-    for language_code in ("ru", "en"):
+    if not captions:
+        return None
+    for language_code in PREFERRED_LANGUAGES:
         track = next(
             (track for track in captions if track.get("languageCode") == language_code),
             None,
@@ -161,6 +173,9 @@ def get_youtube_data(video_id) -> dict:
         return metadata
 
     track = pick_caption_track(captions)
+    if not track:
+        metadata["transcript"] = "No suitable caption track found."
+        return metadata
 
     sub_url = track.get("baseUrl")
     if not sub_url:

@@ -11,12 +11,12 @@ This skill is intended for extracting metadata and timestamped transcripts for Y
 
 When the user asks for video information or a transcript from a YouTube link, follow these steps:
 
-1. **Run the script**: Use `python3 Scripts/youtube_helper.py <VIDEO_URL>` to fetch the data.
+1. **Run the script**: Use `python3 Scripts/Youtube_helper.py <VIDEO_URL>` to fetch the data.
 2. **Process the result**: The script outputs JSON with the title, author, duration, description, and timestamped transcript.
 
 ### Example command
 ```bash
-python3 Scripts/youtube_helper.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python3 Scripts/Youtube_helper.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 ## Requirements

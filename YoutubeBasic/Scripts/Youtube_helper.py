@@ -132,7 +132,10 @@ def get_youtube_data(video_id) -> dict:
     except Exception as e:
         return {"error": f"YouTube request failed: {e}"}
 
-    data = json.loads(raw_response.decode())
+    try:
+        data = json.loads(raw_response.decode())
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {"error": "YouTube returned invalid response."}
 
     status = data.get("playabilityStatus", {}).get("status")
     if status != "OK":

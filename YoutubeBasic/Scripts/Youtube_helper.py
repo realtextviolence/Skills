@@ -2,9 +2,9 @@ import html
 import json
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
-import time
 import xml.etree.ElementTree as ET
 
 PLAYER_URL = "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
@@ -196,7 +196,7 @@ def get_youtube_data(video_id) -> dict:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python Scripts/Youtube_helper.py <URL>")
+        print("Usage: python Scripts/Youtube_helper.py <VIDEO_URL>")
         sys.exit(1)
 
     url = sys.argv[1]

@@ -60,7 +60,7 @@ def extract_video_id(url):
     return None
 
 
-def format_time(seconds):
+def format_timestamp(seconds):
     try:
         return f"[{format_duration(seconds)}]"
     except (ValueError, TypeError):
@@ -72,27 +72,34 @@ def _node_text(node):
     return html.unescape(text).replace("\n", " ").strip()
 
 
+SUBTITLE_FORMATS = (
+    {"tag": ".//text", "time_attr": "start", "to_seconds": float},
+    {"tag": ".//p", "time_attr": "t", "to_seconds": lambda ms: int(ms) / 1000},
+)
+
+
+def _extract_lines(root, tag, time_attr, to_seconds):
+    lines = []
+    for node in root.findall(tag):
+        raw_time = node.attrib.get(time_attr)
+        text = _node_text(node)
+        if raw_time and text:
+            lines.append(f"{format_timestamp(to_seconds(raw_time))} {text}")
+    return lines
+
+
 def parse_transcript_xml(xml_content):
     try:
         root = ET.fromstring(xml_content)
     except ET.ParseError:
         return "Failed to parse subtitles XML."
 
-    lines = []
-    for node in root.findall(".//text"):
-        start = node.attrib.get("start")
-        text = _node_text(node)
-        if start and text:
-            lines.append(f"{format_time(start)} {text}")
+    for fmt in SUBTITLE_FORMATS:
+        lines = _extract_lines(root, **fmt)
+        if lines:
+            return "\n".join(lines)
 
-    if not lines:
-        for node in root.findall(".//p"):
-            t_ms = node.attrib.get("t")
-            text = _node_text(node)
-            if t_ms and text:
-                lines.append(f"{format_time(int(t_ms) / 1000)} {text}")
-
-    return "\n".join(lines) if lines else "Transcript is empty after parsing."
+    return "Transcript is empty after parsing."
 
 
 def pick_caption_track(captions):
